@@ -96,12 +96,12 @@ JNIEXPORT void JNICALL Java_com_example_neskotlinmobile_MainActivity_init(JNIEnv
     audioCallbackMethod = env->GetStaticMethodID(clazz, "onAudioSample", "(SS)V");
 
     // Set callbacks
-    video_cb = retro_video_callback;
-    audio_cb = retro_audio_callback;
-    audio_batch_cb = retro_audio_batch_callback;
-    environ_cb = retro_environment_callback;
-    input_poll_cb = retro_input_poll_callback;
-    input_state_cb = retro_input_state_callback;
+    retro_set_environment(retro_environment_callback);
+    retro_set_video_refresh(retro_video_callback);
+    retro_set_audio_sample(retro_audio_callback);
+    retro_set_audio_sample_batch(retro_audio_batch_callback);
+    retro_set_input_poll(retro_input_poll_callback);
+    retro_set_input_state(retro_input_state_callback);
 
     // Call retro_init
     retro_init();
