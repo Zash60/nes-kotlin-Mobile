@@ -144,7 +144,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun isGamepad(deviceId: Int): Boolean {
         val device = inputManager.getInputDevice(deviceId)
-        return device != null && (device.sources and InputManager.SOURCE_GAMEPAD) != 0
+        return device != null && (device.sources and InputDevice.SOURCE_GAMEPAD) != 0
     }
 
     private fun mapKeyToId(keyCode: Int): Int? {
