@@ -11,6 +11,7 @@ static retro_audio_sample_batch_t audio_batch_cb = nullptr;
 static retro_environment_t environ_cb = nullptr;
 static retro_input_poll_t input_poll_cb = nullptr;
 static retro_input_state_t input_state_cb = nullptr;
+static short *frame_buffer = nullptr;
 
 // Java VM and class references
 static JavaVM *jvm = nullptr;
@@ -34,13 +35,18 @@ bool retro_environment_callback(unsigned cmd, void *data) {
 
 // Video callback
 void retro_video_callback(const void *data, unsigned width, unsigned height, size_t pitch) {
-    if (jvm && mainActivityClass && videoCallbackMethod) {
+    if (jvm && mainActivityClass && videoCallbackMethod && frame_buffer) {
+        // Copy frame data considering pitch
+        for (unsigned y = 0; y < height; ++y) {
+            memcpy(&frame_buffer[y * width], &((const short*)data)[y * (pitch / 2)], width * 2);
+        }
+
         JNIEnv *env;
         jvm->AttachCurrentThread(&env, nullptr);
 
         // Create short array for RGB565 frame data
         jshortArray frameData = env->NewShortArray(width * height);
-        env->SetShortArrayRegion(frameData, 0, width * height, (const jshort*)data);
+        env->SetShortArrayRegion(frameData, 0, width * height, (const jshort*)frame_buffer);
 
         // Call Java method
         env->CallStaticVoidMethod(mainActivityClass, videoCallbackMethod, frameData, (jint)width, (jint)height);
@@ -90,6 +96,9 @@ extern "C" {
 JNIEXPORT void JNICALL Java_com_example_neskotlinmobile_MainActivity_init(JNIEnv *env, jclass clazz) {
     env->GetJavaVM(&jvm);
     mainActivityClass = (jclass)env->NewGlobalRef(clazz);
+
+    // Allocate frame buffer
+    frame_buffer = new short[256 * 240];
 
     // Get method IDs
     videoCallbackMethod = env->GetStaticMethodID(clazz, "onVideoFrame", "([SII)V");
@@ -144,6 +153,10 @@ JNIEXPORT void JNICALL Java_com_example_neskotlinmobile_MainActivity_unloadGame(
 
 JNIEXPORT void JNICALL Java_com_example_neskotlinmobile_MainActivity_deinit(JNIEnv *env, jclass clazz) {
     retro_deinit();
+    if (frame_buffer) {
+        delete[] frame_buffer;
+        frame_buffer = nullptr;
+    }
     if (mainActivityClass) {
         env->DeleteGlobalRef(mainActivityClass);
         mainActivityClass = nullptr;
